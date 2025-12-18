@@ -125,7 +125,7 @@ export function TableDetailsDialog({ table, open, onOpenChange, isStaffView = fa
 
   const handleCreateBooking = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!customerName || !mobile || !peopleCount || !bookingTime) {
+    if (!customerName || !mobile || !peopleCount ) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields",
@@ -142,7 +142,7 @@ export function TableDetailsDialog({ table, open, onOpenChange, isStaffView = fa
         mobile,
         email: email || undefined,
         peopleCount: Number.parseInt(peopleCount),
-        bookingTime: new Date(bookingTime).toISOString(),
+        bookingTime: new Date().toISOString(),
         durationMinutes: Number.parseInt(durationMinutes),
       })
       toast({
@@ -552,7 +552,7 @@ export function TableDetailsDialog({ table, open, onOpenChange, isStaffView = fa
                       />
                     </div>
 
-                    <div className="space-y-2">
+                    {/* <div className="space-y-2">
                       <Label htmlFor="bookingTime" className="text-sm">
                         Booking Date & Time *
                       </Label>
@@ -564,7 +564,7 @@ export function TableDetailsDialog({ table, open, onOpenChange, isStaffView = fa
                         required
                         className="text-base w-full"
                       />
-                    </div>
+                    </div> */}
 
                     <div className="space-y-2">
                       <Label htmlFor="duration" className="text-sm">

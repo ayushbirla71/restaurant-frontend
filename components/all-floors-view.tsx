@@ -71,7 +71,7 @@ export function AllFloorsView({ isStaffView = false }: AllFloorsViewProps) {
     <div className="space-y-4">
       {/* Search and Filter Section */}
       <Card className="shadow-sm">
-        <CardContent className="p-4">
+        <CardContent className="py-1">
           {/* Mobile: Stack everything */}
           <div className="flex flex-col gap-3 lg:hidden">
             <div className="relative">
@@ -137,20 +137,23 @@ export function AllFloorsView({ isStaffView = false }: AllFloorsViewProps) {
       </Card>
 
       {/* Legend */}
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm font-medium px-2">
-        <div className="flex items-center gap-2">
-          <div className="h-4 w-4 rounded-full bg-emerald-600 shadow-sm" />
-          <span className="text-foreground">Available</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="h-4 w-4 rounded-full bg-amber-500 shadow-sm" />
-          <span className="text-foreground">Booked</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="h-4 w-4 rounded-full bg-rose-600 shadow-sm" />
-          <span className="text-foreground">Occupied</span>
-        </div>
-      </div>
+<div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm font-medium px-2">
+  <div className="flex items-center gap-2">
+    <div className="h-4 w-4 rounded-full bg-emerald-500 shadow-emerald-500/30" />
+    <span className="text-foreground">Available</span>
+  </div>
+
+  <div className="flex items-center gap-2">
+    <div className="h-4 w-4 rounded-full bg-amber-500 shadow-amber-500/30" />
+    <span className="text-foreground">Booked</span>
+  </div>
+
+  <div className="flex items-center gap-2">
+    <div className="h-4 w-4 rounded-full bg-rose-500 shadow-rose-500/30" />
+    <span className="text-foreground">Occupied</span>
+  </div>
+</div>
+
 
       {/* All Floors with Tables */}
       <div className="space-y-6">

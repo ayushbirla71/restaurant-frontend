@@ -59,14 +59,14 @@ export function DashboardHeader({ isStaffView = false }: DashboardHeaderProps) {
                 Staff View
               </Link>
             )}
-            {isStaffView && (
+            {/* {isStaffView && (
               <Link
                 href="/admin"
                 className="ml-2 lg:ml-4 rounded-lg border border-border px-3 lg:px-4 py-2 text-sm font-medium transition-colors hover:bg-accent"
               >
                 Admin View
               </Link>
-            )}
+            )} */}
           </nav>
 
           {/* Mobile Navigation */}

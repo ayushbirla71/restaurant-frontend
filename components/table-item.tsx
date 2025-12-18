@@ -63,11 +63,23 @@ export function TableItem({ table, isStaffView = false }: TableItemProps) {
     return () => clearInterval(interval)
   }, [booking, table.status])
 
-  const statusColors = {
-    AVAILABLE: "bg-emerald-600 hover:bg-emerald-700 border-emerald-700 shadow-emerald-500/20",
-    BOOKED: "bg-amber-500 hover:bg-amber-600 border-amber-600 shadow-amber-500/20",
-    OCCUPIED: "bg-rose-600 hover:bg-rose-700 border-rose-700 shadow-rose-500/20",
-  }
+  // const statusColors = {
+  //   AVAILABLE: "bg-emerald-600 hover:bg-emerald-700 border-emerald-700 shadow-emerald-500/20",
+  //   BOOKED: "bg-amber-500 hover:bg-amber-600 border-amber-600 shadow-amber-500/20",
+  //   OCCUPIED: "bg-rose-600 hover:bg-rose-700 border-rose-700 shadow-rose-500/20",
+  // }
+
+const statusColors = {
+  AVAILABLE:
+    "bg-emerald-100 text-emerald-900 border border-emerald-400 hover:bg-emerald-200 shadow-emerald-400/30",
+
+  BOOKED:
+    "bg-amber-100 text-amber-900 border border-amber-400 hover:bg-amber-200 shadow-amber-400/30",
+
+  OCCUPIED:
+    "bg-rose-100 text-rose-900 border border-rose-400 hover:bg-rose-200 shadow-rose-400/30",
+};
+
 
   const sizeIcons = {
     SMALL: 2,
