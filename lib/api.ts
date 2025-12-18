@@ -1,4 +1,4 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://kanuma.ad96.in"
 const API_BASE = `${BASE_URL}/api`
 
 async function fetchAPI(endpoint: string, options?: RequestInit) {
