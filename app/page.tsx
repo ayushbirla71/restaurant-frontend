@@ -1,13 +1,5 @@
-import { redirect } from "next/navigation";
-import { headers } from "next/headers";
+import { redirect } from "next/navigation"
 
-export default async function HomePage() {
-  const headersList = await headers(); // ✅ await required
-  const pathname = headersList.get("x-pathname") || "";
-
-  if (pathname.startsWith("/admin")) {
-    return null;
-  }
-
-  redirect("/tables");
+export default function HomePage() {
+  redirect("/admin")
 }
