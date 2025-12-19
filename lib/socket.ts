@@ -1,6 +1,6 @@
 import { io, type Socket } from "socket.io-client"
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://kanuma.ad96.in"
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://kanuma.ad96.in"
 
 let socket: Socket | null = null
 

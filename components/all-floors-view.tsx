@@ -174,7 +174,9 @@ export function AllFloorsView({ isStaffView = false }: AllFloorsViewProps) {
                   </Badge>
                 </div>
                 <div className="grid gap-2 grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10">
-                  {floor.Tables.map((table) => (
+                  {floor.Tables
+                    .sort((a, b) => a.tableNumber.localeCompare(b.tableNumber, undefined, { numeric: true }))
+                    .map((table) => (
                     <TableItem key={table.id} table={table} isStaffView={isStaffView} />
                   ))}
                 </div>
@@ -186,4 +188,5 @@ export function AllFloorsView({ isStaffView = false }: AllFloorsViewProps) {
     </div>
   )
 }
+
 

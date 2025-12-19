@@ -1,5 +1,9 @@
 import { redirect } from "next/navigation"
 
 export default function HomePage() {
-  redirect("/admin")
+  // This should never be reached due to middleware redirect
+  // But keeping as fallback
+  redirect("/tables")
 }
+
+
