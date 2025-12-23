@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Search, Filter } from "lucide-react"
 import { TableItem } from "@/components/table-item"
-import { useFloorsWithTables } from "@/hooks/use-floors-with-tables"
+import { useFloors } from "@/contexts/floors-context"
 import type { Table } from "@/types"
 
 interface AllFloorsViewProps {
@@ -15,7 +15,7 @@ interface AllFloorsViewProps {
 }
 
 export function AllFloorsView({ isStaffView = false }: AllFloorsViewProps) {
-  const { floors, loading } = useFloorsWithTables()
+  const { floors, loading } = useFloors()
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("ALL")
   const [sizeFilter, setSizeFilter] = useState<string>("ALL")

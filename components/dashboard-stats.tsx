@@ -1,7 +1,7 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Building2, Table, CheckCircle2, Calendar, UserCheck, Users } from "lucide-react"
+import { Building2, Table, CheckCircle2, Calendar, UserCheck, Users, Clock, Star } from "lucide-react"
 import { useDashboard } from "@/hooks/use-dashboard"
 import { cn } from "@/lib/utils"
 
@@ -83,10 +83,24 @@ export function DashboardStats() {
       color: "text-teal-600",
       bgColor: "bg-teal-50",
     },
+    {
+      title: "Waiting List",
+      value: stats.summary.waitingListCount || 0,
+      icon: Clock,
+      color: "text-orange-600",
+      bgColor: "bg-orange-50",
+    },
+    {
+      title: "Pre-Bookings Today",
+      value: stats.summary.todayPreBookings || 0,
+      icon: Star,
+      color: "text-pink-600",
+      bgColor: "bg-pink-50",
+    },
   ]
 
   return (
-    <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
+    <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
       {cards.map((card) => (
         <Card key={card.title} className="shadow-sm hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 pt-3 sm:px-4 sm:pt-4">

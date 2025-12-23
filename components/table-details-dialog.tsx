@@ -6,17 +6,17 @@ import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Users, Phone, Mail, User, Clock, ArrowRightLeft } from "lucide-react"
+import { Users, Phone, User, Clock, ArrowRightLeft, X, Calendar } from "lucide-react"
 import { useTableDetails } from "@/hooks/use-table-details"
 import { useTables } from "@/hooks/use-tables"
-import { createBooking, cancelBooking, completeBooking, reassignTable, updateTableStatus, createQuickOccupancy } from "@/lib/api"
+import { cancelBooking, completeBooking, reassignTable, updateTableStatus, createQuickOccupancy, getAllTableBookings } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
-import type { Table } from "@/types"
+import type { Table, Booking } from "@/types"
 import { cn } from "@/lib/utils"
+import { TableAvailabilityUpdate } from "@/components/table-availability-update"
 
 interface TableDetailsDialogProps {
   table: Table
@@ -32,14 +32,11 @@ export function TableDetailsDialog({ table, open, onOpenChange, isStaffView = fa
   const [updating, setUpdating] = useState(false)
   const [showReassign, setShowReassign] = useState(false)
   const [selectedNewTable, setSelectedNewTable] = useState<string>("")
-
-  // Form state for new booking
-  const [customerName, setCustomerName] = useState("")
-  const [mobile, setMobile] = useState("")
-  const [email, setEmail] = useState("")
-  const [peopleCount, setPeopleCount] = useState("")
-  const [bookingTime, setBookingTime] = useState("")
-  const [durationMinutes, setDurationMinutes] = useState("60")
+  const [allBookings, setAllBookings] = useState<Booking[]>([])
+  const [loadingAllBookings, setLoadingAllBookings] = useState(false)
+  const [showReassignDialog, setShowReassignDialog] = useState(false)
+  const [bookingToReassign, setBookingToReassign] = useState<Booking | null>(null)
+  const [newTableForReassign, setNewTableForReassign] = useState<string>("")
 
   // Calculate time remaining for booking
   const getTimeRemaining = () => {
@@ -71,17 +68,35 @@ export function TableDetailsDialog({ table, open, onOpenChange, isStaffView = fa
 
   const timeRemaining = getTimeRemaining()
 
+  // Fetch all bookings for this table
+  const fetchAllBookings = async () => {
+    if (!open) return
+
+    try {
+      setLoadingAllBookings(true)
+      const bookings = await getAllTableBookings(table.id)
+      setAllBookings(bookings)
+    } catch (error) {
+      console.error("Failed to fetch all bookings:", error)
+      setAllBookings([])
+    } finally {
+      setLoadingAllBookings(false)
+    }
+  }
+
   useEffect(() => {
     if (open) {
-      // Reset form
-      setCustomerName("")
-      setMobile("")
-      setEmail("")
-      setPeopleCount("")
-      setBookingTime("")
-      setDurationMinutes("60")
+      // Reset state when dialog opens
+      setShowReassign(false)
+      setSelectedNewTable("")
+      setShowReassignDialog(false)
+      setBookingToReassign(null)
+      setNewTableForReassign("")
+
+      // Fetch all bookings
+      fetchAllBookings()
     }
-  }, [open])
+  }, [open, table.id])
 
   const handleStatusChange = async (status: string) => {
     setUpdating(true)
@@ -116,44 +131,6 @@ export function TableDetailsDialog({ table, open, onOpenChange, isStaffView = fa
       toast({
         title: "Error",
         description: "Failed to mark table as occupied",
-        variant: "destructive",
-      })
-    } finally {
-      setUpdating(false)
-    }
-  }
-
-  const handleCreateBooking = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!customerName || !mobile || !peopleCount ) {
-      toast({
-        title: "Validation Error",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      })
-      return
-    }
-
-    setUpdating(true)
-    try {
-      await createBooking({
-        tableId: table.id,
-        customerName,
-        mobile,
-        email: email || undefined,
-        peopleCount: Number.parseInt(peopleCount),
-        bookingTime: new Date().toISOString(),
-        durationMinutes: Number.parseInt(durationMinutes),
-      })
-      toast({
-        title: "Booking Created",
-        description: `Table ${table.tableNumber} booked for ${customerName} (${durationMinutes} min)`,
-      })
-      onOpenChange(false)
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to create booking",
         variant: "destructive",
       })
     } finally {
@@ -289,124 +266,115 @@ export function TableDetailsDialog({ table, open, onOpenChange, isStaffView = fa
                       Mark as Available
                     </Button>
                   </div>
+                  {table.status !== "AVAILABLE" && (
+                    <div className="pt-2">
+                      <Label className="text-sm font-semibold mb-2 block">Table Availability Time</Label>
+                      <TableAvailabilityUpdate
+                        tableId={table.id}
+                        tableNumber={table.tableNumber}
+                        currentAvailability={table.availableInMinutes}
+                      />
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
           )}
 
-          {/* Booking Details */}
+          {/* Current Active Booking Details */}
           {booking && (
-            <Card>
+            <Card className="border-2 border-green-200 bg-green-50/30">
               <CardContent className="pt-4 sm:pt-6">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between gap-2">
-                    <Label className="text-sm sm:text-base font-semibold">Booking Information</Label>
-                    <Badge variant="outline" className="text-xs shrink-0">
-                      ID: {booking.id.slice(0, 8)}
+                    <Label className="text-sm sm:text-base font-semibold text-green-900 flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      Current Active Booking
+                    </Label>
+                    <Badge className="bg-green-600 text-white text-xs shrink-0">
+                      ACTIVE
                     </Badge>
                   </div>
 
-                  <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid gap-3 sm:grid-cols-2">
                     <div className="flex items-center gap-3 min-w-0">
                       <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs sm:text-sm text-muted-foreground">Customer Name</p>
-                        <p className="font-medium truncate">{booking.customerName}</p>
+                        <p className="text-xs text-muted-foreground">Customer</p>
+                        <p className="font-semibold truncate">{booking.customerName}</p>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-3 min-w-0">
                       <Phone className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs sm:text-sm text-muted-foreground">Mobile</p>
-                        <p className="font-medium truncate">{booking.mobile}</p>
+                        <p className="text-xs text-muted-foreground">Mobile</p>
+                        <p className="font-semibold truncate">{booking.mobile}</p>
                       </div>
                     </div>
-
-                    {booking.email && (
-                      <div className="flex items-center gap-3 min-w-0">
-                        <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs sm:text-sm text-muted-foreground">Email</p>
-                          <p className="font-medium text-sm truncate">{booking.email}</p>
-                        </div>
-                      </div>
-                    )}
 
                     <div className="flex items-center gap-3">
                       <Users className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                       <div>
-                        <p className="text-xs sm:text-sm text-muted-foreground">Guests</p>
-                        <p className="font-medium">{booking.peopleCount} people</p>
+                        <p className="text-xs text-muted-foreground">Guests</p>
+                        <p className="font-semibold">{booking.peopleCount} people</p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 sm:col-span-2 min-w-0">
+                    <div className="flex items-center gap-3 min-w-0">
                       <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs sm:text-sm text-muted-foreground">Booking Time</p>
-                        <p className="font-medium text-sm sm:text-base break-words">
-                          {new Date(booking.bookingTime).toLocaleString()}
+                        <p className="text-xs text-muted-foreground">Time</p>
+                        <p className="font-semibold text-sm break-words">
+                          {new Date(booking.bookingTime).toLocaleTimeString('en-US', {
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true
+                          })}
                         </p>
                       </div>
                     </div>
-
-                    <div className="flex items-center gap-3 sm:col-span-2">
-                      <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <div className="flex-1">
-                        <p className="text-xs sm:text-sm text-muted-foreground">Duration</p>
-                        <p className="font-medium">{booking.durationMinutes || 60} minutes</p>
-                      </div>
-                    </div>
-
-                    {timeRemaining && table.status === "OCCUPIED" && (
-                      <div className="sm:col-span-2">
-                        <div className={cn(
-                          "rounded-lg p-3 text-center font-semibold",
-                          timeRemaining.isExpired
-                            ? "bg-rose-100 text-rose-700"
-                            : timeRemaining.minutes <= 15
-                            ? "bg-amber-100 text-amber-700"
-                            : "bg-emerald-100 text-emerald-700"
-                        )}>
-                          {timeRemaining.text}
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                   {/* Staff Actions for Booking */}
                   {isStaffView && (
                     <div className="space-y-2 pt-2">
                       {!showReassign ? (
-                        <div className="flex flex-col sm:flex-row gap-2">
-                          {table.status === "OCCUPIED" ? (
+                        <>
+                          <div className="flex flex-col sm:flex-row gap-2">
+                            {table.status === "OCCUPIED" ? (
+                              <Button
+                                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+                                onClick={handleCompleteBooking}
+                                disabled={updating}
+                              >
+                                Complete Booking
+                              </Button>
+                            ) : (
+                              <Button
+                                className="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-medium"
+                                onClick={() => handleStatusChange("OCCUPIED")}
+                                disabled={updating}
+                              >
+                                Mark as Occupied
+                              </Button>
+                            )}
                             <Button
-                              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
-                              onClick={handleCompleteBooking}
+                              variant="outline"
+                              className="flex-1 font-medium"
+                              onClick={() => setShowReassign(true)}
                               disabled={updating}
                             >
-                              Complete Booking
+                              <ArrowRightLeft className="mr-2 h-4 w-4" />
+                              Change Table
                             </Button>
-                          ) : (
-                            <Button
-                              className="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-medium"
-                              onClick={() => handleStatusChange("OCCUPIED")}
-                              disabled={updating}
-                            >
-                              Mark as Occupied
-                            </Button>
+                          </div>
+                          {table.status === "BOOKED" && (
+                            <div className="bg-blue-50 border border-blue-200 rounded-md p-2 text-xs text-blue-800">
+                              💡 <strong>Early Arrival?</strong> Click "Mark as Occupied" to seat the customer now, even if they arrived before their booking time.
+                            </div>
                           )}
-                          <Button
-                            variant="outline"
-                            className="flex-1 font-medium"
-                            onClick={() => setShowReassign(true)}
-                            disabled={updating}
-                          >
-                            <ArrowRightLeft className="mr-2 h-4 w-4" />
-                            Change Table
-                          </Button>
-                        </div>
+                        </>
                       ) : (
                         <div className="space-y-3">
                           <Label className="text-sm font-semibold">Reassign to Table</Label>
@@ -451,32 +419,39 @@ export function TableDetailsDialog({ table, open, onOpenChange, isStaffView = fa
 
                   {/* Admin Actions for Booking */}
                   {!isStaffView && (
-                    <div className="flex flex-col sm:flex-row gap-2 pt-2">
-                      {table.status === "OCCUPIED" ? (
+                    <div className="space-y-2 pt-2">
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        {table.status === "OCCUPIED" ? (
+                          <Button
+                            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+                            onClick={handleCompleteBooking}
+                            disabled={updating}
+                          >
+                            Complete Booking
+                          </Button>
+                        ) : (
+                          <Button
+                            className="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-medium"
+                            onClick={() => handleStatusChange("OCCUPIED")}
+                            disabled={updating}
+                          >
+                            Mark as Occupied
+                          </Button>
+                        )}
                         <Button
-                          className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
-                          onClick={handleCompleteBooking}
+                          variant="destructive"
+                          className="flex-1 font-medium"
+                          onClick={handleCancelBooking}
                           disabled={updating}
                         >
-                          Complete Booking
+                          Cancel Booking
                         </Button>
-                      ) : (
-                        <Button
-                          className="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-medium"
-                          onClick={() => handleStatusChange("OCCUPIED")}
-                          disabled={updating}
-                        >
-                          Mark as Occupied
-                        </Button>
+                      </div>
+                      {table.status === "BOOKED" && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-md p-2 text-xs text-blue-800">
+                          💡 <strong>Early Arrival?</strong> Click "Mark as Occupied" to seat the customer now, even if they arrived before their booking time.
+                        </div>
                       )}
-                      <Button
-                        variant="destructive"
-                        className="flex-1 font-medium"
-                        onClick={handleCancelBooking}
-                        disabled={updating}
-                      >
-                        Cancel Booking
-                      </Button>
                     </div>
                   )}
                 </div>
@@ -484,114 +459,141 @@ export function TableDetailsDialog({ table, open, onOpenChange, isStaffView = fa
             </Card>
           )}
 
-          {/* Create Booking Form - Only for admin on available tables */}
-          {!isStaffView && !booking && table.status === "AVAILABLE" && (
-            <Card>
-              <CardContent className="pt-4 sm:pt-6">
-                <form onSubmit={handleCreateBooking} className="space-y-4">
-                  <Label className="text-sm sm:text-base font-semibold">Create New Booking</Label>
+          {/* Today's Upcoming Bookings - Show only TODAY'S FUTURE bookings (not the current active one) */}
+          {!isStaffView && (() => {
+            // Filter out the current active booking and show only today's upcoming bookings
+            const todaysNextBookings = allBookings.filter(bkg =>
+              bkg.status !== "CANCELLED" &&
+              bkg.status !== "COMPLETED" &&
+              (!booking || bkg.id !== booking.id) // Exclude current active booking
+            )
 
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="customerName" className="text-sm">
-                        Customer Name *
+            return todaysNextBookings.length > 0 ? (
+              <Card className="border-2 border-blue-200 bg-blue-50/30">
+                <CardContent className="pt-4 sm:pt-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <Label className="text-sm sm:text-base font-semibold flex items-center gap-2 text-blue-900">
+                        <Calendar className="h-4 w-4" />
+                        Today's Next Bookings
                       </Label>
-                      <Input
-                        id="customerName"
-                        placeholder="Enter customer name"
-                        value={customerName}
-                        onChange={(e) => setCustomerName(e.target.value)}
-                        required
-                        className="text-base"
-                      />
+                      <Badge className="bg-blue-600 text-white text-xs">
+                        {todaysNextBookings.length} today
+                      </Badge>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="mobile" className="text-sm">
-                        Mobile Number *
-                      </Label>
-                      <Input
-                        id="mobile"
-                        type="tel"
-                        placeholder="+1-555-0000"
-                        value={mobile}
-                        onChange={(e) => setMobile(e.target.value)}
-                        required
-                        className="text-base"
-                      />
-                    </div>
+                    {loadingAllBookings ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        Loading bookings...
+                      </div>
+                    ) : (
+                      <div className="space-y-3 max-h-80 overflow-y-auto">
+                        {todaysNextBookings.map((bkg, index) => {
+                          const bookingDateTime = bkg.bookingDate && bkg.bookingTimeSlot
+                            ? new Date(`${bkg.bookingDate}T${bkg.bookingTimeSlot}`)
+                            : new Date(bkg.bookingTime)
 
-                    <div className="space-y-2">
-                      <Label htmlFor="email" className="text-sm">
-                        Email
-                      </Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="customer@email.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="text-base"
-                      />
-                    </div>
+                          return (
+                            <div
+                              key={bkg.id}
+                              className="border border-gray-300 rounded-lg p-3 space-y-2 bg-white hover:shadow-md transition-shadow"
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <Badge variant="outline" className="text-xs font-mono">
+                                      #{index + 1}
+                                    </Badge>
+                                    <p className="font-semibold text-sm truncate">{bkg.customerName}</p>
+                                  </div>
+                                  <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                                    <span className="flex items-center gap-1">
+                                      <Phone className="h-3 w-3" />
+                                      {bkg.mobile}
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                      <Users className="h-3 w-3" />
+                                      {bkg.peopleCount} guests
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                      <Clock className="h-3 w-3" />
+                                      {bookingDateTime.toLocaleTimeString('en-US', {
+                                        hour: 'numeric',
+                                        minute: '2-digit',
+                                        hour12: true
+                                      })}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="flex flex-col gap-1 items-end">
+                                  <Badge
+                                    variant="outline"
+                                    className="text-xs"
+                                  >
+                                    {bkg.status}
+                                  </Badge>
+                                  <Badge variant="outline" className="text-xs">
+                                    {bkg.bookingType === "WALK_IN" ? "Walk-in" : "Pre-booking"}
+                                  </Badge>
+                                </div>
+                              </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="peopleCount" className="text-sm">
-                        Number of Guests *
-                      </Label>
-                      <Input
-                        id="peopleCount"
-                        type="number"
-                        min="1"
-                        max={tableCapacity}
-                        placeholder={`Max ${tableCapacity} guests`}
-                        value={peopleCount}
-                        onChange={(e) => setPeopleCount(e.target.value)}
-                        required
-                        className="text-base"
-                      />
-                    </div>
-
-                    {/* <div className="space-y-2">
-                      <Label htmlFor="bookingTime" className="text-sm">
-                        Booking Date & Time *
-                      </Label>
-                      <Input
-                        id="bookingTime"
-                        type="datetime-local"
-                        value={bookingTime}
-                        onChange={(e) => setBookingTime(e.target.value)}
-                        required
-                        className="text-base w-full"
-                      />
-                    </div> */}
-
-                    <div className="space-y-2">
-                      <Label htmlFor="duration" className="text-sm">
-                        Duration (minutes) *
-                      </Label>
-                      <Input
-                        id="duration"
-                        type="number"
-                        min="15"
-                        step="15"
-                        placeholder="60"
-                        value={durationMinutes}
-                        onChange={(e) => setDurationMinutes(e.target.value)}
-                        required
-                        className="text-base"
-                      />
-                      <p className="text-xs text-muted-foreground">Default: 60 minutes (1 hour)</p>
-                    </div>
+                              {/* Booking Actions */}
+                              <div className="flex gap-2 pt-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="flex-1 text-xs"
+                                  onClick={() => {
+                                    setBookingToReassign(bkg)
+                                    setNewTableForReassign("")
+                                    setShowReassignDialog(true)
+                                  }}
+                                  disabled={updating}
+                                >
+                                  <ArrowRightLeft className="h-3 w-3 mr-1" />
+                                  Change Table
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  className="text-xs"
+                                  onClick={async () => {
+                                    if (confirm(`Cancel booking for ${bkg.customerName}?`)) {
+                                      try {
+                                        setUpdating(true)
+                                        await cancelBooking(bkg.id)
+                                        toast({
+                                          title: "Booking Cancelled",
+                                          description: `Booking for ${bkg.customerName} cancelled`,
+                                        })
+                                        fetchAllBookings()
+                                      } catch (error) {
+                                        toast({
+                                          title: "Error",
+                                          description: "Failed to cancel booking",
+                                          variant: "destructive",
+                                        })
+                                      } finally {
+                                        setUpdating(false)
+                                      }
+                                    }
+                                  }}
+                                  disabled={updating}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
                   </div>
-
-                  <Button type="submit" className="w-full font-medium" disabled={updating}>
-                    Create Booking
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          )}
+                </CardContent>
+              </Card>
+            ) : null
+          })()}
 
           {/* Admin Status Controls - Only when no booking */}
           {!isStaffView && !booking && table.status !== "AVAILABLE" && (
@@ -635,6 +637,92 @@ export function TableDetailsDialog({ table, open, onOpenChange, isStaffView = fa
           )}
         </div>
       </DialogContent>
+
+      {/* Reassign Table Dialog */}
+      <Dialog open={showReassignDialog} onOpenChange={setShowReassignDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Change Table</DialogTitle>
+            <DialogDescription>
+              Select a new table for {bookingToReassign?.customerName}'s booking
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Select New Table</Label>
+              <Select value={newTableForReassign} onValueChange={setNewTableForReassign}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a table" />
+                </SelectTrigger>
+                <SelectContent>
+                  {allTables
+                    ?.filter(t => t.id !== table.id && t.status === "AVAILABLE")
+                    .map((t) => {
+                      const capacity = t.size === "SMALL" ? 2 : t.size === "MEDIUM" ? 4 : 6
+                      return (
+                        <SelectItem key={t.id} value={t.id}>
+                          Table {t.tableNumber} - {t.size} ({capacity} seats)
+                        </SelectItem>
+                      )
+                    })}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  setShowReassignDialog(false)
+                  setBookingToReassign(null)
+                  setNewTableForReassign("")
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={async () => {
+                  if (!bookingToReassign || !newTableForReassign) {
+                    toast({
+                      title: "Error",
+                      description: "Please select a table",
+                      variant: "destructive",
+                    })
+                    return
+                  }
+
+                  try {
+                    setUpdating(true)
+                    await reassignTable(bookingToReassign.id, newTableForReassign)
+                    toast({
+                      title: "Table Changed",
+                      description: `Booking moved to new table`,
+                    })
+                    setShowReassignDialog(false)
+                    setBookingToReassign(null)
+                    setNewTableForReassign("")
+                    fetchAllBookings()
+                  } catch (error: any) {
+                    toast({
+                      title: "Error",
+                      description: error.message || "Failed to change table",
+                      variant: "destructive",
+                    })
+                  } finally {
+                    setUpdating(false)
+                  }
+                }}
+                disabled={!newTableForReassign || updating}
+              >
+                Change Table
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   )
 }

@@ -42,9 +42,13 @@ export function CreateTableDialog({ open, onOpenChange, floorId: initialFloorId 
     setCreating(true)
 
     try {
+      // Calculate seats based on size
+      const seats = size === "SMALL" ? 2 : size === "MEDIUM" ? 4 : 6
+
       await createTable({
         tableNumber,
         size,
+        seats,
         floorId,
       })
 
