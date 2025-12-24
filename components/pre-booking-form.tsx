@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast"
 import { createBooking, addToWaitingList, getTableStatusesForDateTime } from "@/lib/api"
 import { useFloors } from "@/contexts/floors-context"
-import { Users, Phone, Mail, Calendar, Clock, X, Search, CheckCircle2 } from "lucide-react"
+import { Users, Phone, Mail, Calendar, Clock, X, Search, CheckCircle2, AlertCircle } from "lucide-react"
 import { TableItem } from "@/components/table-item"
 import { cn } from "@/lib/utils"
 import type { Table } from "@/types"
@@ -53,13 +53,48 @@ export function PreBookingForm({ onClose }: PreBookingFormProps) {
   const [durationMinutes, setDurationMinutes] = useState("60")
   const [preferredTableSize, setPreferredTableSize] = useState<"SMALL" | "MEDIUM" | "LARGE">("MEDIUM")
 
+  // Validation states
+  const [mobileError, setMobileError] = useState("")
+  const [emailError, setEmailError] = useState("")
+
   // Table selection
   const [selectedTableIds, setSelectedTableIds] = useState<string[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<"ALL" | "AVAILABLE" | "BOOKED">("ALL")
   const [sizeFilter, setSizeFilter] = useState<"ALL" | "SMALL" | "MEDIUM" | "LARGE">("ALL")
 
-  const isFormValid = customerName && mobile && peopleCount && bookingDate && bookingTimeSlot
+  // Validation functions
+  const validateMobile = (value: string): string => {
+    if (!value.trim()) {
+      return "Mobile number is required"
+    }
+    // Remove all spaces, dashes, and parentheses for validation
+    const cleanedValue = value.replace(/[\s\-\(\)]/g, '')
+
+    // Indian mobile number formats:
+    // 10 digits: 9876543210
+    // With +91: +919876543210
+    // With 0: 09876543210
+    const indianMobileRegex = /^(\+91|91|0)?[6-9]\d{9}$/
+
+    if (!indianMobileRegex.test(cleanedValue)) {
+      return "Please enter a valid Indian mobile number (10 digits starting with 6-9)"
+    }
+    return ""
+  }
+
+  const validateEmail = (value: string): string => {
+    if (!value.trim()) {
+      return "" // Email is optional
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(value)) {
+      return "Please enter a valid email address"
+    }
+    return ""
+  }
+
+  const isFormValid = customerName && mobile && peopleCount && bookingDate && bookingTimeSlot && !mobileError && !emailError
 
   // Fetch table statuses for the selected date/time
   const fetchTableStatusesForDateTime = async () => {
@@ -134,6 +169,33 @@ export function PreBookingForm({ onClose }: PreBookingFormProps) {
       return total + (table?.seats || 0)
     }, 0)
   }, [selectedTableIds, floors])
+
+  // Input handlers with validation
+  const handleMobileChange = (value: string) => {
+    setMobile(value)
+    // Clear error when user starts typing
+    if (mobileError) {
+      setMobileError("")
+    }
+  }
+
+  const handleMobileBlur = () => {
+    const error = validateMobile(mobile)
+    setMobileError(error)
+  }
+
+  const handleEmailChange = (value: string) => {
+    setEmail(value)
+    // Clear error when user starts typing
+    if (emailError) {
+      setEmailError("")
+    }
+  }
+
+  const handleEmailBlur = () => {
+    const error = validateEmail(email)
+    setEmailError(error)
+  }
 
   const toggleTableSelection = (tableId: string) => {
     setSelectedTableIds((prev) =>
@@ -267,12 +329,19 @@ export function PreBookingForm({ onClose }: PreBookingFormProps) {
                   <Input
                     id="mobile"
                     value={mobile}
-                    onChange={(e) => setMobile(e.target.value)}
-                    placeholder="+1-555-0123"
-                    className="pl-10 text-sm sm:text-base h-10 sm:h-11"
+                    onChange={(e) => handleMobileChange(e.target.value)}
+                    onBlur={handleMobileBlur}
+                    placeholder="9876543210 or +91-9876543210"
+                    className={cn("pl-10 text-sm sm:text-base h-10 sm:h-11", mobileError && "border-red-500 focus-visible:ring-red-500")}
                     required
                   />
                 </div>
+                {mobileError && (
+                  <p className="text-sm text-red-500 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {mobileError}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -285,11 +354,18 @@ export function PreBookingForm({ onClose }: PreBookingFormProps) {
                     id="email"
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => handleEmailChange(e.target.value)}
+                    onBlur={handleEmailBlur}
                     placeholder="john@example.com"
-                    className="pl-10 text-sm sm:text-base h-10 sm:h-11"
+                    className={cn("pl-10 text-sm sm:text-base h-10 sm:h-11", emailError && "border-red-500 focus-visible:ring-red-500")}
                   />
                 </div>
+                {emailError && (
+                  <p className="text-sm text-red-500 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {emailError}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-1.5 sm:space-y-2">

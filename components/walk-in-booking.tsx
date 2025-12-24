@@ -34,6 +34,10 @@ export function WalkInBooking({ onBookingActive }: WalkInBookingProps) {
   const [durationMinutes, setDurationMinutes] = useState("60")
   const [preferredTableSize, setPreferredTableSize] = useState<"SMALL" | "MEDIUM" | "LARGE">("MEDIUM")
 
+  // Validation states
+  const [mobileError, setMobileError] = useState("")
+  const [emailError, setEmailError] = useState("")
+
   // Table selection
   const [selectedTableIds, setSelectedTableIds] = useState<string[]>([])
   const [searchQuery, setSearchQuery] = useState("")
@@ -44,12 +48,43 @@ export function WalkInBooking({ onBookingActive }: WalkInBookingProps) {
   const [showConflictDialog, setShowConflictDialog] = useState(false)
   const [conflictInfo, setConflictInfo] = useState<any>(null)
 
+  // Validation functions
+  const validateMobile = (value: string): string => {
+    if (!value.trim()) {
+      return "Mobile number is required"
+    }
+    // Remove all spaces, dashes, and parentheses for validation
+    const cleanedValue = value.replace(/[\s\-\(\)]/g, '')
+
+    // Indian mobile number formats:
+    // 10 digits: 9876543210
+    // With +91: +919876543210
+    // With 0: 09876543210
+    const indianMobileRegex = /^(\+91|91|0)?[6-9]\d{9}$/
+
+    if (!indianMobileRegex.test(cleanedValue)) {
+      return "Please enter a valid Indian mobile number (10 digits starting with 6-9)"
+    }
+    return ""
+  }
+
+  const validateEmail = (value: string): string => {
+    if (!value.trim()) {
+      return "" // Email is optional
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(value)) {
+      return "Please enter a valid email address"
+    }
+    return ""
+  }
+
   // Notify parent when booking is active
-  const isFormValid = customerName && mobile && peopleCount
+  const isFormValid = customerName && mobile && peopleCount && !mobileError && !emailError
 
   useEffect(() => {
     if (onBookingActive) {
-      onBookingActive(isFormValid)
+      onBookingActive(!!isFormValid)
     }
   }, [isFormValid, onBookingActive])
 
@@ -91,6 +126,33 @@ export function WalkInBooking({ onBookingActive }: WalkInBookingProps) {
       return total + (table?.seats || 0)
     }, 0)
   }, [selectedTableIds, floors])
+
+  // Input handlers with validation
+  const handleMobileChange = (value: string) => {
+    setMobile(value)
+    // Clear error when user starts typing
+    if (mobileError) {
+      setMobileError("")
+    }
+  }
+
+  const handleMobileBlur = () => {
+    const error = validateMobile(mobile)
+    setMobileError(error)
+  }
+
+  const handleEmailChange = (value: string) => {
+    setEmail(value)
+    // Clear error when user starts typing
+    if (emailError) {
+      setEmailError("")
+    }
+  }
+
+  const handleEmailBlur = () => {
+    const error = validateEmail(email)
+    setEmailError(error)
+  }
 
   const toggleTableSelection = (tableId: string) => {
     setSelectedTableIds((prev) =>
@@ -146,6 +208,8 @@ export function WalkInBooking({ onBookingActive }: WalkInBookingProps) {
       setPreferredTableSize("MEDIUM")
       setDurationMinutes("60")
       setSelectedTableIds([])
+      setMobileError("")
+      setEmailError("")
     } catch (error: any) {
       // Handle booking conflict (409 status)
       if (error.status === 409 && error.estimatedWaitTime) {
@@ -216,6 +280,8 @@ export function WalkInBooking({ onBookingActive }: WalkInBookingProps) {
       setDurationMinutes("60")
       setSelectedTableIds([])
       setConflictInfo(null)
+      setMobileError("")
+      setEmailError("")
     } catch (error: any) {
       toast({
         title: "Error",
@@ -270,6 +336,8 @@ export function WalkInBooking({ onBookingActive }: WalkInBookingProps) {
       setDurationMinutes("60")
       setConflictInfo(null)
       setShowConflictDialog(false)
+      setMobileError("")
+      setEmailError("")
     } catch (error: any) {
       toast({
         title: "Error",
@@ -312,12 +380,19 @@ export function WalkInBooking({ onBookingActive }: WalkInBookingProps) {
                 <Input
                   id="mobile"
                   value={mobile}
-                  onChange={(e) => setMobile(e.target.value)}
-                  placeholder="+1-555-0123"
-                  className="pl-10"
+                  onChange={(e) => handleMobileChange(e.target.value)}
+                  onBlur={handleMobileBlur}
+                  placeholder="9876543210 or +91-9876543210"
+                  className={cn("pl-10", mobileError && "border-red-500 focus-visible:ring-red-500")}
                   required
                 />
               </div>
+              {mobileError && (
+                <p className="text-sm text-red-500 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  {mobileError}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -328,11 +403,18 @@ export function WalkInBooking({ onBookingActive }: WalkInBookingProps) {
                   id="email"
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => handleEmailChange(e.target.value)}
+                  onBlur={handleEmailBlur}
                   placeholder="john@example.com"
-                  className="pl-10"
+                  className={cn("pl-10", emailError && "border-red-500 focus-visible:ring-red-500")}
                 />
               </div>
+              {emailError && (
+                <p className="text-sm text-red-500 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  {emailError}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
