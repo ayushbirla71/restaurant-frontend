@@ -42,6 +42,7 @@ export function PreBookingForm({ onClose }: PreBookingFormProps) {
   const { floors, loading: floorsLoading } = useFloors()
   const [floorsForDateTime, setFloorsForDateTime] = useState<FloorWithStatus[] | null>(null)
   const [loadingDateTime, setLoadingDateTime] = useState(false)
+  const todayString = new Date().toISOString().split("T")[0]
 
   // Form fields
   const [customerName, setCustomerName] = useState("")
@@ -625,6 +626,12 @@ export function PreBookingForm({ onClose }: PreBookingFormProps) {
                                 isStaffView={false}
                                 isSelectionMode={true}
                                 onTableClick={() => toggleTableSelection(table.id)}
+                                bookingDate={bookingDate}
+                                isPreeBooking={true}
+                                isTodaysBooking={bookingDate === todayString}
+                                isFutureBooking={bookingDate !== todayString}
+                                isWalkInBooking={false}
+                                isWaitingList={false}
                               />
                               {isSelected && (
                                 <div className="absolute top-1 right-1 bg-primary rounded-full p-0.5">

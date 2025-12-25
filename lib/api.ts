@@ -88,8 +88,14 @@ export function getAllTableBookings(tableId: string) {
   return fetchAPI(`/tables/${tableId}/bookings/all`)
 }
 
-export function getUpcomingBookingsForTable(tableId: string) {
-  return fetchAPI(`/bookings/table/${tableId}/upcoming`)
+export function getUpcomingBookingsForTable(tableId: string, isTodaysBooking?: boolean ,bookingDate?: string,) {
+  return fetchAPI(`/bookings/table/${tableId}/upcoming`, {method: "POST",
+    body: JSON.stringify({ isTodaysBooking, bookingDate }),
+  })
+}
+
+export function getFutureBookingsForTableWithDate(tableId: string ,bookingDate?: string, isTodaysBooking?: boolean) {
+  return fetchAPI(`/bookings/table/${tableId}/todays-bookings`)
 }
 
 export function getTableStatusesForDateTime(bookingDate: string, bookingTimeSlot: string) {

@@ -20,9 +20,16 @@ interface TableItemProps {
   isStaffView?: boolean
   isSelectionMode?: boolean
   onTableClick?: () => void
+  bookingDate?: string
+  isPreeBooking?: boolean
+  isWalkInBooking?: boolean
+  isWaitingList?: boolean
+  isTodaysBooking?: boolean
+  isFutureBooking?: boolean
+  bookingTimeSlot?: string
 }
 
-export function TableItem({ table, isStaffView = false, isSelectionMode = false, onTableClick }: TableItemProps) {
+export function TableItem({ table, isStaffView = false, isSelectionMode = false, onTableClick, bookingDate, isPreeBooking = false, isWalkInBooking = false, isWaitingList = false, isTodaysBooking = false, isFutureBooking = false, bookingTimeSlot}: TableItemProps) {
   const [showDetails, setShowDetails] = useState(false)
   const [showStatusDialog, setShowStatusDialog] = useState(false)
   const [booking, setBooking] = useState<Booking | null>(null)
@@ -32,43 +39,43 @@ export function TableItem({ table, isStaffView = false, isSelectionMode = false,
   const [showTodaysBookings, setShowTodaysBookings] = useState(false)
 
   // Fetch booking if table is occupied or booked
-  useEffect(() => {
-    const fetchBooking = async () => {
-      if (table.status === "OCCUPIED" || table.status === "BOOKED") {
-        try {
-          const data = await getTableBooking(table.id)
-          setBooking(data)
+  // useEffect(() => {
+  //   const fetchBooking = async () => {
+  //     if (table.status === "OCCUPIED" || table.status === "BOOKED") {
+  //       try {
+  //         const data = await getTableBooking(table.id)
+  //         setBooking(data)
 
-          // Check if this is a future booking
-          if (data && data.bookingDate && data.bookingTimeSlot) {
-            const bookingDateTime = new Date(`${data.bookingDate}T${data.bookingTimeSlot}`)
-            const now = new Date()
+  //         // Check if this is a future booking
+  //         if (data && data.bookingDate && data.bookingTimeSlot) {
+  //           const bookingDateTime = new Date(`${data.bookingDate}T${data.bookingTimeSlot}`)
+  //           const now = new Date()
 
-            if (bookingDateTime > now) {
-              // Format the future booking time
-              const timeStr = data.bookingTimeSlot
-              const dateStr = new Date(data.bookingDate).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric'
-              })
-              setFutureBookingInfo(`${timeStr} ${dateStr}`)
-            } else {
-              setFutureBookingInfo(null)
-            }
-          } else {
-            setFutureBookingInfo(null)
-          }
-        } catch (error) {
-          console.error("Failed to fetch booking:", error)
-        }
-      } else {
-        setBooking(null)
-        setTimeRemaining(null)
-        setFutureBookingInfo(null)
-      }
-    }
-    fetchBooking()
-  }, [table.id, table.status])
+  //           if (bookingDateTime > now) {
+  //             // Format the future booking time
+  //             const timeStr = data.bookingTimeSlot
+  //             const dateStr = new Date(data.bookingDate).toLocaleDateString('en-US', {
+  //               month: 'short',
+  //               day: 'numeric'
+  //             })
+  //             setFutureBookingInfo(`${timeStr} ${dateStr}`)
+  //           } else {
+  //             setFutureBookingInfo(null)
+  //           }
+  //         } else {
+  //           setFutureBookingInfo(null)
+  //         }
+  //       } catch (error) {
+  //         console.error("Failed to fetch booking:", error)
+  //       }
+  //     } else {
+  //       setBooking(null)
+  //       setTimeRemaining(null)
+  //       setFutureBookingInfo(null)
+  //     }
+  //   }
+  //   fetchBooking()
+  // }, [table.id, table.status])
 
   // Calculate time remaining
   useEffect(() => {
@@ -101,14 +108,14 @@ export function TableItem({ table, isStaffView = false, isSelectionMode = false,
   useEffect(() => {
     const fetchTodaysBookings = async () => {
       try {
-        const bookings = await getUpcomingBookingsForTable(table.id)
+        const bookings = await getUpcomingBookingsForTable(table.id, isTodaysBooking, bookingDate)
         setTodaysBookings(bookings)
       } catch (error) {
         console.error("Failed to fetch today's bookings:", error)
       }
     }
     fetchTodaysBookings()
-  }, [table.id])
+  }, [table.id, bookingDate, bookingTimeSlot])
 
   // const statusColors = {
   //   AVAILABLE: "bg-emerald-600 hover:bg-emerald-700 border-emerald-700 shadow-emerald-500/20",
@@ -175,23 +182,23 @@ const statusColors = {
           })()}
 
         {/* Show calculated time remaining OR staff-set available time (not both) */}
-        {timeRemaining !== null ? (
+        {/* {timeRemaining !== null ? (
           <div className="flex items-center gap-0.5 text-[9px] font-bold bg-white/20 px-1 py-0.5 rounded">
-            {/* <Clock className="h-2.5 w-2.5" />
-            <span>{timeRemaining}m</span> */}
+            <Clock className="h-2.5 w-2.5" />
+            <span>{timeRemaining}m</span>
           </div>
         ) : table.availableInMinutes && table.status !== "AVAILABLE" ? (
           <div className="flex items-center gap-0.5 text-[9px] font-bold bg-blue-500/30 px-1 py-0.5 rounded">
             <Clock className="h-2.5 w-2.5" />
             <span>~{table.availableInMinutes}m</span>
           </div>
-        ) : null}
-        {futureBookingInfo && table.status === "BOOKED" && (
+        ) : null} */}
+        {/* {futureBookingInfo && table.status === "BOOKED" && (
           <div className="flex items-center gap-0.5 text-[9px] font-bold bg-purple-500/30 px-1 py-0.5 rounded">
             <Calendar className="h-2.5 w-2.5" />
             <span>{futureBookingInfo}</span>
           </div>
-        )}
+        )} */}
         <div className="flex gap-1">
           {Array.from({ length: sizeIcons[table.size as keyof typeof sizeIcons] }).map((_, i) => (
             <div key={i} className="h-1 w-1 rounded-full bg-white/70" />
@@ -243,7 +250,7 @@ const statusColors = {
           </PopoverTrigger>
           <PopoverContent className="w-72 p-3" align="end">
             <div className="space-y-2">
-              <h4 className="font-semibold text-sm">Today's Upcoming Bookings</h4>
+              <h4 className="font-semibold text-sm">{ isTodaysBooking ? "Today's" : bookingDate  } Bookings</h4>
               <p className="text-xs text-muted-foreground">Bookings scheduled for today only</p>
               {todaysBookings.map((todaysBooking) => {
                 const bookingDateTime = todaysBooking.bookingDate && todaysBooking.bookingTimeSlot
@@ -266,7 +273,7 @@ const statusColors = {
                     </div>
                     <div className="text-muted-foreground mt-0.5">
                       <Clock className="h-3 w-3 inline mr-1" />
-                      Today at {timeStr}
+                      { isTodaysBooking ? "Today at" : bookingDate + " at"} {timeStr}
                     </div>
                     {todaysBooking.mobile && (
                       <div className="text-muted-foreground mt-0.5">

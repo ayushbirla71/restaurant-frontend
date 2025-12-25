@@ -19,6 +19,7 @@ export function AllFloorsView({ isStaffView = false }: AllFloorsViewProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("ALL")
   const [sizeFilter, setSizeFilter] = useState<string>("ALL")
+  const todaysString = new Date().toISOString().split("T")[0]
 
   // Filter tables across all floors
   const filteredFloors = useMemo(() => {
@@ -177,7 +178,7 @@ export function AllFloorsView({ isStaffView = false }: AllFloorsViewProps) {
                   {floor.Tables
                     .sort((a, b) => a.tableNumber.localeCompare(b.tableNumber, undefined, { numeric: true }))
                     .map((table) => (
-                    <TableItem key={table.id} table={table} isStaffView={isStaffView} />
+                    <TableItem key={table.id} table={table} isStaffView={isStaffView}  bookingDate={todaysString} isTodaysBooking={true} isFutureBooking={false} isWalkInBooking={false} isWaitingList={false}  isPreeBooking={false}  />
                   ))}
                 </div>
               </CardContent>

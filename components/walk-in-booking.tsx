@@ -25,6 +25,7 @@ export function WalkInBooking({ onBookingActive }: WalkInBookingProps) {
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const { floors, loading: floorsLoading } = useFloors()
+  const [bookingDate, setBookingDate] = useState(new Date().toISOString().split("T")[0])
 
   // Customer details
   const [customerName, setCustomerName] = useState("")
@@ -314,6 +315,8 @@ export function WalkInBooking({ onBookingActive }: WalkInBookingProps) {
         email: email || undefined,
         peopleCount: Number.parseInt(peopleCount),
         preferredTableSize,
+        bookingDate: new Date().toISOString(),
+        bookingTimeSlot: new Date().toLocaleTimeString(),
         bookingType: "WALK_IN",
         estimatedWaitMinutes,
       })
@@ -609,6 +612,13 @@ export function WalkInBooking({ onBookingActive }: WalkInBookingProps) {
                                 isStaffView={false}
                                 isSelectionMode={true}
                                 onTableClick={() => toggleTableSelection(table.id)}
+                                bookingDate={bookingDate}
+                                isTodaysBooking={true}
+                                isWalkInBooking={true}
+                                isFutureBooking={false}
+                                isWaitingList={false}
+                              
+
                               />
                               {isSelected && (
                                 <div className="absolute top-1 right-1 bg-primary rounded-full p-0.5">

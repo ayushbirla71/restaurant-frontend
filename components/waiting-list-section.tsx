@@ -6,9 +6,9 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
-import { getWaitingList, createBooking, assignTableFromWaiting, checkAssignConflict } from "@/lib/api"
+import { getWaitingList, createBooking, assignTableFromWaiting, checkAssignConflict, removeFromWaitingList } from "@/lib/api"
 import { useFloors } from "@/contexts/floors-context"
-import { Users, Phone, Mail, Clock, ArrowUp, Search, CheckCircle2, ArrowLeft, AlertTriangle } from "lucide-react"
+import { Users, Phone, Mail, Clock, ArrowUp, Search, CheckCircle2, ArrowLeft, AlertTriangle, Calendar, X } from "lucide-react"
 import { TableOccupancyTimer } from "@/components/table-occupancy-timer"
 import { TableItem } from "@/components/table-item"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -41,6 +41,9 @@ export function WaitingListSection({ onAssignSuccess, onAssignActive }: WaitingL
   const [showConflictDialog, setShowConflictDialog] = useState(false)
   const [conflictInfo, setConflictInfo] = useState<any>(null)
   const [pendingAssignment, setPendingAssignment] = useState<{ tableId: string; tableName: string } | null>(null)
+  const todaysString = new Date().toISOString().split("T")[0]
+  const [showCancelDialog, setShowCancelDialog] = useState(false)
+  const [entryIdForCancel, setEntryIdForCancel] = useState<string | null>(null)
 
   useEffect(() => {
     fetchWaitingList()
@@ -244,6 +247,45 @@ export function WaitingListSection({ onAssignSuccess, onAssignActive }: WaitingL
     setLoading(false)
   }
 
+  const handleCancelEntryDelete = async ( open: boolean ) => {
+    setSelectedEntry(null)
+    setSelectedTableIds([])
+    setShowCancelDialog(open)
+    setEntryIdForCancel(null)
+  }
+
+  const handleConfirmCancelEntry = async ( ) => {
+
+
+    if (!entryIdForCancel) return
+
+    try {
+      await removeFromWaitingList(entryIdForCancel)
+      toast({
+        title: "Entry Cancelled",
+        description: "The entry has been removed from the waiting list",
+      })
+      fetchWaitingList()
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to cancel entry",
+        variant: "destructive",
+      })
+    } finally {
+      setShowCancelDialog(false)
+      setEntryIdForCancel(null)
+    }
+  } 
+
+  const handleCancelEntry = async (entryId: string) => {
+    setSelectedEntry(null)
+    setSelectedTableIds([])
+    setShowCancelDialog(true)
+    setEntryIdForCancel(entryId)
+  }
+
+
   // If assigning tables, show table selection view
   if (selectedEntry) {
     return (
@@ -410,6 +452,11 @@ export function WaitingListSection({ onAssignSuccess, onAssignActive }: WaitingL
                             isStaffView={false}
                             isSelectionMode={true}
                             onTableClick={() => handleToggleTable(table.id)}
+                            bookingDate={selectedEntry.bookingDate}
+                            isWaitingList={true}
+                            isTodaysBooking={selectedEntry.bookingDate === todaysString}
+                            isFutureBooking={selectedEntry.bookingDate !== todaysString}
+                            isWalkInBooking={false}
                           />
                           {isSelected && (
                             <div className="absolute top-1 right-1 bg-primary rounded-full p-0.5">
@@ -471,6 +518,12 @@ export function WaitingListSection({ onAssignSuccess, onAssignActive }: WaitingL
                           <span>{entry.email}</span>
                         </div>
                       )}
+                      {entry.bookingDate && entry.bookingTimeSlot && (
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
+                          <span>{entry.bookingDate} at {entry.bookingTimeSlot}</span>
+                        </div>
+                      )}
                       <div className="flex items-center gap-1">
                         <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
                         <span>Waiting from: {Math.floor((Date.now() - new Date(entry.createdAt).getTime()) / 60000)}m</span>
@@ -492,6 +545,15 @@ export function WaitingListSection({ onAssignSuccess, onAssignActive }: WaitingL
                     <CheckCircle2 className="h-4 w-4" />
                     Assign
                   </Button>
+                   {/* Cancel Button */}
+                   <Button
+                      variant="destructive"
+                      onClick={() => handleCancelEntry(entry.id)}
+                      className="w-full sm:w-auto gap-2"
+                    >
+                      <X className="h-4 w-4" />
+                      Cancel
+                    </Button>
                 </div>
               </CardContent>
             </Card>
@@ -559,6 +621,33 @@ export function WaitingListSection({ onAssignSuccess, onAssignActive }: WaitingL
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={showCancelDialog} onOpenChange={ (open) => handleCancelEntryDelete ( open )}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Cancel Entry</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to cancel this entry?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={( ) => handleCancelEntryDelete( false )}
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => handleConfirmCancelEntry()}
+              className="w-full sm:w-auto"
+            >
+              Confirm Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+        </Dialog>
     </div>
   )
 }
