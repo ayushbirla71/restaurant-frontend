@@ -128,6 +128,10 @@ export function createBooking(data: {
   })
 }
 
+export function getBookingAPI(bookingId: string) {
+  return fetchAPI(`/bookings/${bookingId}`)
+}
+
 export function getAvailableTables(peopleCount: number, bookingDate?: string, bookingTimeSlot?: string) {
   const params = new URLSearchParams({ peopleCount: peopleCount.toString() })
   if (bookingDate) params.append("bookingDate", bookingDate)
@@ -155,6 +159,20 @@ export function cancelBooking(bookingId: string) {
 export function completeBooking(bookingId: string) {
   return fetchAPI(`/bookings/${bookingId}/complete`, {
     method: "PUT",
+  })
+}
+
+
+export function updateBookingAPI(bookingId: string, updates: object) {
+  return fetchAPI(`/bookings/${bookingId}/edit`, {
+    method: "PUT",
+    body: JSON.stringify(updates),
+  })
+}
+
+export function deleteBookingAPI(bookingId: string) {
+  return fetchAPI(`/bookings/${bookingId}`, {
+    method: "DELETE",
   })
 }
 

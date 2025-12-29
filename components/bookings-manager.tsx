@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Search, Filter } from "lucide-react"
 import { CreateBookingDialog } from "@/components/create-booking-dialog"
 import { BookingsList } from "@/components/bookings-list"
+import { UpdateBookingDialog } from "./update-booking-dialog"
+import { DeleteBookingDialog } from "./delete-booking-dialog"
 
 export function BookingsManager() {
   const [showCreateBooking, setShowCreateBooking] = useState(false)
@@ -15,6 +17,11 @@ export function BookingsManager() {
   const [statusFilter, setStatusFilter] = useState<string>("ALL")
   const [bookingTypeFilter, setBookingTypeFilter] = useState<string>("ALL")
   const [dateFilter, setDateFilter] = useState<string>("")
+  const [showUpdateBooking, setShowUpdateBooking] = useState(false)
+  const [bookingId, setBookingId] = useState<string>("")
+  const [booking, setBooking] = useState<object>({})
+  const [showDeleteBooking, setShowDeleteBooking] = useState(false)
+  const [deleteBookingId, setDeleteBookingId] = useState<string>("")
 
   return (
     <div className="space-y-6">
@@ -88,9 +95,15 @@ export function BookingsManager() {
         statusFilter={statusFilter}
         bookingTypeFilter={bookingTypeFilter}
         dateFilter={dateFilter}
+        onUpdateBooking={setShowUpdateBooking}
+        onBookingIdChange={setBookingId}
+        onDeleteBooking={setShowDeleteBooking}
+        
       />
 
       <CreateBookingDialog open={showCreateBooking} onOpenChange={setShowCreateBooking} />
+      <UpdateBookingDialog open={showUpdateBooking} onOpenChange={setShowUpdateBooking} bookingId={bookingId}  />
+      <DeleteBookingDialog open={showDeleteBooking} onOpenChange={setShowDeleteBooking} bookingId={bookingId} />
     </div>
   )
 }
